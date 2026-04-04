@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spinach × 3D Class</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b0f0e;
+      --surface: #121917;
+      --border: #1e2e2a;
+      --accent: #3fffa2;
+      --accent2: #ff6b6b;
+      --accent3: #ffd166;
+      --text: #e8f5f0;
+      --muted: #6b8c80;
+      --card-bg: #111a17;
+      --dc-bg: #313338;
+      --dc-sidebar: #2b2d31;
+      --dc-input: #383a40;
+      --dc-bot-color: #5865f2;
+      --dc-green: #1DB954;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Noto Sans TC', sans-serif; font-weight: 300; min-height: 100vh; overflow-x: hidden; }
+    body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-size: 200px 200px; pointer-events: none; z-index: 999; opacity: 0.5; }
+
+    nav { position: fixed; top: 0; left: 0; right: 0; padding: 1.2rem clamp(1.5rem, 5vw, 5rem); display: flex; justify-content: space-between; align-items: center; z-index: 100; backdrop-filter: blur(12px); border-bottom: 1px solid transparent; transition: border-color 0.3s, background 0.3s; }
+    nav.scrolled { border-color: var(--border); background: rgba(11,15,14,0.85); }
+    .nav-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; color: var(--accent); text-decoration: none; }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { font-family: 'DM Mono', monospace; font-size: 0.75rem; letter-spacing: 0.1em; color: var(--muted); text-decoration: none; text-transform: uppercase; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--accent); }
+
+    header { position: relative; padding: 0 clamp(1.5rem, 5vw, 5rem); height: 100svh; min-height: 580px; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+    .header-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 60% 50% at 80% 50%, #0d2e22 0%, transparent 70%), radial-gradient(ellipse 40% 60% at 10% 80%, #0a1e18 0%, transparent 60%); }
+    .grid-lines { position: absolute; inset: 0; background-image: linear-gradient(rgba(63,255,162,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(63,255,162,0.04) 1px, transparent 1px); background-size: 60px 60px; }
+    .header-content { position: relative; z-index: 1; }
+    .eyebrow { font-family: 'DM Mono', monospace; font-size: 0.75rem; letter-spacing: 0.25em; color: var(--accent); text-transform: uppercase; opacity: 0; animation: fadeUp 0.6s 0.2s forwards; }
+    h1 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(3.5rem, 10vw, 9rem); line-height: 0.9; letter-spacing: -0.03em; margin: 1rem 0; opacity: 0; animation: fadeUp 0.7s 0.4s forwards; }
+    h1 .green { color: var(--accent); }
+    h1 .dim { color: var(--muted); font-weight: 400; }
+    .subtitle { font-family: 'DM Mono', monospace; font-size: clamp(0.8rem, 1.5vw, 1rem); color: var(--muted); max-width: 480px; line-height: 1.7; margin-top: 1.5rem; opacity: 0; animation: fadeUp 0.7s 0.6s forwards; }
+    .scroll-hint { position: absolute; bottom: 2rem; left: clamp(1.5rem, 5vw, 5rem); font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.15em; display: flex; align-items: center; gap: 0.5rem; opacity: 0; animation: fadeUp 0.6s 1s forwards; }
+    .scroll-hint::before { content: ''; display: block; width: 1px; height: 40px; background: linear-gradient(to bottom, var(--accent), transparent); }
+
+    section { padding: clamp(4rem, 8vw, 8rem) clamp(1.5rem, 5vw, 5rem); max-width: 1400px; margin: 0 auto; }
+    .section-label { font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.25em; color: var(--accent); text-transform: uppercase; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.75rem; }
+    .section-label::after { content: ''; flex: 1; max-width: 80px; height: 1px; background: var(--accent); opacity: 0.4; }
+    .section-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: clamp(2rem, 4vw, 3.5rem); letter-spacing: -0.02em; margin-bottom: 3rem; line-height: 1.1; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+    /* 3D demos */
+    .demos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); }
+    .demo-card { background: var(--card-bg); padding: 2rem; text-decoration: none; display: flex; flex-direction: column; gap: 1rem; position: relative; overflow: hidden; transition: background 0.25s; color: var(--text); }
+    .demo-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(63,255,162,0.06) 0%, transparent 60%); opacity: 0; transition: opacity 0.3s; }
+    .demo-card:hover { background: #162320; }
+    .demo-card:hover::before { opacity: 1; }
+    .demo-card:hover .demo-arrow { transform: translate(4px,-4px); color: var(--accent); }
+    .demo-icon { width: 40px; height: 40px; border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+    .demo-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.05rem; }
+    .demo-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.6; flex: 1; }
+    .demo-arrow { font-size: 1rem; color: var(--muted); align-self: flex-end; transition: transform 0.2s, color 0.2s; }
+    .demo-tag { font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); border: 1px solid rgba(63,255,162,0.25); padding: 0.2em 0.6em; border-radius: 2px; width: fit-content; }
+
+    /* Sketchfab */
+    .sketchfab-wrapper { border: 1px solid var(--border); border-radius: 2px; overflow: hidden; background: #0a1410; }
+    .sketchfab-bar { padding: 0.9rem 1.5rem; background: var(--card-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 0.75rem; }
+    .sf-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+    .sf-label { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.1em; }
+    .sf-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; color: var(--text); margin-left: auto; }
+    .sketchfab-wrapper iframe { width: 100%; height: 500px; display: block; border: none; }
+
+    /* Discord */
+    .discord-demo { background: var(--dc-bg); border-radius: 8px; overflow: hidden; border: 1px solid #1e2124; display: flex; height: 540px; font-family: 'Noto Sans TC', sans-serif; }
+    .dc-sidebar { width: 72px; background: #1e1f22; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 8px; flex-shrink: 0; }
+    .dc-server-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--dc-bot-color); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; cursor: pointer; transition: border-radius 0.2s; position: relative; }
+    .dc-server-icon:hover, .dc-server-icon.active { border-radius: 30%; }
+    .dc-server-icon.active::before { content: ''; position: absolute; left: -12px; width: 4px; height: 70%; background: white; border-radius: 0 4px 4px 0; }
+    .dc-channels { width: 220px; background: var(--dc-sidebar); display: flex; flex-direction: column; flex-shrink: 0; }
+    .dc-server-name { padding: 16px; font-weight: 700; font-size: 0.95rem; color: white; border-bottom: 1px solid #1e2023; display: flex; align-items: center; justify-content: space-between; }
+    .dc-category { padding: 16px 8px 4px 16px; font-size: 0.65rem; font-weight: 700; color: #949ba4; text-transform: uppercase; letter-spacing: 0.08em; }
+    .dc-channel { padding: 6px 8px; margin: 1px 8px; border-radius: 4px; font-size: 0.9rem; color: #949ba4; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s, color 0.15s; }
+    .dc-channel:hover { background: #35373c; color: #dbdee1; }
+    .dc-channel.active { background: #404249; color: white; }
+    .dc-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .dc-topbar { padding: 12px 16px; border-bottom: 1px solid #1e2023; display: flex; align-items: center; gap: 8px; color: white; font-weight: 700; font-size: 0.95rem; flex-shrink: 0; }
+    .dc-messages { flex: 1; overflow-y: auto; padding: 16px 0 8px; display: flex; flex-direction: column; gap: 2px; }
+    .dc-messages::-webkit-scrollbar { width: 4px; }
+    .dc-messages::-webkit-scrollbar-thumb { background: #1a1b1e; border-radius: 2px; }
+    .dc-msg { padding: 2px 16px; display: flex; gap: 12px; border-radius: 2px; transition: background 0.1s; }
+    .dc-msg:hover { background: rgba(0,0,0,0.06); }
+    .dc-msg.with-avatar { margin-top: 16px; }
+    .dc-avatar { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; margin-top: 2px; }
+    .dc-msg-content { flex: 1; min-width: 0; }
+    .dc-msg-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+    .dc-username { font-weight: 600; font-size: 0.95rem; }
+    .dc-badge { background: var(--dc-bot-color); color: white; font-size: 0.6rem; font-weight: 700; padding: 1px 4px; border-radius: 3px; letter-spacing: 0.05em; }
+    .dc-badge.music { background: #1DB954; }
+    .dc-timestamp { font-size: 0.7rem; color: #949ba4; }
+    .dc-text { font-size: 0.9rem; color: #dbdee1; line-height: 1.5; word-break: break-word; }
+    .dc-text code { background: #111214; border-radius: 3px; padding: 0.1em 0.4em; font-family: 'DM Mono', monospace; font-size: 0.85em; color: #c9cdfb; }
+    .dc-slash { color: #c9cdfb; font-weight: 600; }
+    .dc-embed { margin-top: 6px; border-left: 4px solid #1DB954; background: #2b2d31; border-radius: 0 4px 4px 0; padding: 10px 14px; max-width: 440px; }
+    .dc-embed-title { font-weight: 700; font-size: 0.92rem; color: white; margin-bottom: 4px; }
+    .dc-embed-desc { font-size: 0.85rem; color: #b5bac1; line-height: 1.5; }
+    .dc-embed-field-value { font-size: 0.82rem; color: #b5bac1; line-height: 1.7; margin-top: 6px; }
+    .dc-embed-footer { font-size: 0.73rem; color: #949ba4; margin-top: 8px; }
+    .dc-input-area { padding: 0 16px 16px; flex-shrink: 0; }
+    .dc-input { background: var(--dc-input); border-radius: 8px; padding: 11px 16px; color: #949ba4; font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between; }
+    .dc-input-icons { display: flex; gap: 10px; color: #b5bac1; font-size: 1.1rem; opacity: 0.6; }
+    .dc-fake-select { margin-top: 6px; background: #1e1f22; border-radius: 4px; padding: 10px 12px; max-width: 440px; display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: #949ba4; border: 1px solid #3d3f45; }
+
+    /* Tabs */
+    .demo-tabs { display: flex; margin-bottom: 1.5rem; border: 1px solid var(--border); border-radius: 2px; overflow: hidden; width: fit-content; }
+    .demo-tab { font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.6em 1.4em; border: none; cursor: pointer; background: var(--card-bg); color: var(--muted); transition: background 0.2s, color 0.2s; }
+    .demo-tab.active { background: rgba(63,255,162,0.1); color: var(--accent); }
+    .demo-tab:not(:last-child) { border-right: 1px solid var(--border); }
+    .demo-panel { display: none; }
+    .demo-panel.active { display: block; }
+
+    /* Features */
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+    .feature-item { background: var(--card-bg); border: 1px solid var(--border); border-radius: 2px; padding: 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .feature-icon { font-size: 1.4rem; }
+    .feature-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; }
+    .feature-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+
+    /* Commands table */
+    .commands-table { width: 100%; border-collapse: collapse; }
+    .commands-table tr { border-bottom: 1px solid var(--border); }
+    .commands-table tr:last-child { border-bottom: none; }
+    .commands-table td { padding: 0.7rem 1rem; font-size: 0.82rem; }
+    .commands-table td:first-child { font-family: 'DM Mono', monospace; color: var(--accent); white-space: nowrap; }
+    .commands-table td:last-child { color: var(--muted); }
+
+    /* About */
+    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start; }
+    .about-text p { font-size: 0.95rem; color: var(--muted); line-height: 1.8; margin-bottom: 1rem; }
+    .about-text p strong { color: var(--text); font-weight: 400; }
+    .skills-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .skill-item { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; gap: 0.5rem; }
+    .skill-item::before { content: '▸'; color: var(--accent); }
+
+    footer { border-top: 1px solid var(--border); padding: 2rem clamp(1.5rem, 5vw, 5rem); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .footer-copy { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--accent); }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes blink { 0%,60% { opacity: 1; } 80%,100% { opacity: 0; } }
+    .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .typing-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #949ba4; margin: 0 1px; animation: blink 1.4s infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @media (max-width: 780px) {
+      .dc-channels { display: none; }
+      .about-grid { grid-template-columns: 1fr; gap: 2rem; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav id="nav">
+    <a class="nav-logo" href="#">spinach-45</a>
+    <ul class="nav-links">
+      <li><a href="#demos">3D 作品</a></li>
+      <li><a href="#model">我的模型</a></li>
+      <li><a href="#bot">Music Bot</a></li>
+      <li><a href="#about">關於</a></li>
+    </ul>
+  </nav>
+
+  <header>
+    <div class="header-bg"></div>
+    <div class="grid-lines"></div>
+    <div class="header-content">
+      <p class="eyebrow">// 3D-class · portfolio</p>
+      <h1>Hello,<br/><span class="green">MyFriend</span><span class="dim">.</span></h1>
+      <p class="subtitle">這裡是我的 3D 課程作品集與個人專案展示頁。<br/>從 Babylon.js 3D 場景到 Discord Music Bot，都在這裡。</p>
+    </div>
+    <div class="scroll-hint">scroll to explore</div>
+  </header>
+
+  <hr class="divider" />
+
+  <!-- 3D DEMOS -->
+  <section id="demos">
+    <p class="section-label reveal">3D 作品</p>
+    <h2 class="section-title reveal">課程 Demo</h2>
+    <div class="demos-grid reveal">
+      <a class="demo-card" href="sketchfab.html">
+        <div class="demo-icon">🌐</div>
+        <span class="demo-tag">Sketchfab</span>
+        <div class="demo-title">SketchFab Example</div>
+        <div class="demo-desc">嵌入 Sketchfab 3D 模型，展示基本的外部模型整合方式。</div>
+        <div class="demo-arrow">↗</div>
+      </a>
+      <a class="demo-card" href="0.babylonViewer Basic.html">
+        <div class="demo-icon">🧊</div>
+        <span class="demo-tag">Babylon.js</span>
+        <div class="demo-title">Babylon Viewer Basic</div>
+        <div class="demo-desc">Babylon.js Viewer 的基礎用法，載入並展示 3D 模型。</div>
+        <div class="demo-arrow">↗</div>
+      </a>
+      <a class="demo-card" href="1.babylonViewer Select.html">
+        <div class="demo-icon">🎯</div>
+        <span class="demo-tag">Babylon.js</span>
+        <div class="demo-title">Babylon Viewer Select</div>
+        <div class="demo-desc">加入模型選擇功能，可在不同 3D 物件之間切換瀏覽。</div>
+        <div class="demo-arrow">↗</div>
+      </a>
+      <a class="demo-card" href="2.babylonViewer Navbar.html">
+        <div class="demo-icon">🗂️</div>
+        <span class="demo-tag">Babylon.js</span>
+        <div class="demo-title">Babylon Viewer Navbar</div>
+        <div class="demo-desc">整合導覽列，打造更完整的 3D 展示介面體驗。</div>
+        <div class="demo-arrow">↗</div>
+      </a>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- SKETCHFAB MODEL -->
+  <section id="model">
+    <p class="section-label reveal">我的 3D 模型</p>
+    <h2 class="section-title reveal">wtf is this</h2>
+    <div class="sketchfab-wrapper reveal">
+      <div class="sketchfab-bar">
+        <div class="sf-dot"></div>
+        <span class="sf-label">即時 3D · 可旋轉 · 可縮放</span>
+        <span class="sf-name">by Spinach_45 on Sketchfab</span>
+      </div>
+      <!--
+        ↓↓↓ 你的 Sketchfab 模型就是這個 iframe ↓↓↓
+        以後想換模型，只要把 src 裡的網址換掉就好
+      -->
+      <iframe
+        title="wtf is this"
+        frameborder="0"
+        allowfullscreen
+        mozallowfullscreen="true"
+        webkitallowfullscreen="true"
+        allow="autoplay; fullscreen; xr-spatial-tracking"
+        xr-spatial-tracking
+        execution-while-out-of-viewport
+        execution-while-not-rendered
+        web-share
+        src="https://sketchfab.com/models/f53160fa707e42bbb6ab6742e82f2e3a/embed">
+      </iframe>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- DISCORD BOT -->
+  <section id="bot">
+    <p class="section-label reveal">個人專案</p>
+    <h2 class="section-title reveal">Discord Music Bot</h2>
+
+    <div class="demo-tabs reveal">
+      <button class="demo-tab active" onclick="switchTab('preview')">互動展示</button>
+      <button class="demo-tab" onclick="switchTab('features')">功能介紹</button>
+      <button class="demo-tab" onclick="switchTab('commands')">指令列表</button>
+    </div>
+
+    <!-- 互動展示 -->
+    <div class="demo-panel active" id="tab-preview">
+      <div class="discord-demo reveal">
+        <div class="dc-sidebar">
+          <div class="dc-server-icon active">🎵</div>
+          <div style="width:32px;height:1px;background:#35373c;margin:4px 0;"></div>
+          <div class="dc-server-icon" style="background:#23272a;">➕</div>
+        </div>
+        <div class="dc-channels">
+          <div class="dc-server-name">Spinach's Server <span style="color:#949ba4;font-size:1rem;">✕</span></div>
+          <div class="dc-category">文字頻道</div>
+          <div class="dc-channel"># 一般</div>
+          <div class="dc-channel active">🎵 music-bot</div>
+          <div class="dc-channel"># 閒聊</div>
+          <div class="dc-category" style="margin-top:8px;">語音頻道</div>
+          <div class="dc-channel">🔊 音樂廳</div>
+        </div>
+        <div class="dc-main">
+          <div class="dc-topbar">
+            <span style="color:#949ba4;font-size:1rem;">🎵</span>
+            music-bot
+            <span style="color:#949ba4;font-size:0.8rem;font-weight:400;margin-left:4px;">— 在這裡控制音樂機器人</span>
+          </div>
+          <div class="dc-messages" id="chatMessages">
+
+            <div class="dc-msg with-avatar" id="msg1" style="opacity:0;transition:opacity 0.4s ease, transform 0.4s ease;transform:translateY(8px)">
+              <div class="dc-avatar" style="background:#5865f2;color:white;">S</div>
+              <div class="dc-msg-content">
+                <div class="dc-msg-header">
+                  <span class="dc-username" style="color:#c9cdfb;">Spinach_45</span>
+                  <span class="dc-timestamp">今天 20:13</span>
+                </div>
+                <div class="dc-text"><span class="dc-slash">/play</span> <code>https://open.spotify.com/playlist/...</code></div>
+              </div>
+            </div>
+
+            <div class="dc-msg with-avatar" id="msg2" style="opacity:0;transition:opacity 0.4s ease, transform 0.4s ease;transform:translateY(8px)">
+              <div class="dc-avatar" style="background:#1DB954;color:white;">♪</div>
+              <div class="dc-msg-content">
+                <div class="dc-msg-header">
+                  <span class="dc-username" style="color:#57f287;">MusicBot</span>
+                  <span class="dc-badge music">BOT</span>
+                  <span class="dc-timestamp">今天 20:13</span>
+                </div>
+                <div class="dc-embed" style="border-left-color:#3498db;">
+                  <div class="dc-embed-title">⏳ 處理中</div>
+                  <div class="dc-embed-desc">正在讀取 Spotify 歌單，請稍候…</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="dc-msg with-avatar" id="msg3" style="opacity:0;transition:opacity 0.4s ease, transform 0.4s ease;transform:translateY(8px)">
+              <div class="dc-avatar" style="background:#1DB954;color:white;">♪</div>
+              <div class="dc-msg-content">
+                <div class="dc-msg-header">
+                  <span class="dc-username" style="color:#57f287;">MusicBot</span>
+                  <span class="dc-badge music">BOT</span>
+                  <span class="dc-timestamp">今天 20:13</span>
+                </div>
+                <div class="dc-embed">
+                  <div class="dc-embed-title">🎵 開始播放</div>
+                  <div class="dc-embed-desc" style="font-weight:600;color:white;font-size:0.9rem;">APT. - ROSÉ &amp; Bruno Mars</div>
+                  <div class="dc-embed-footer">佇列剩餘：23 首</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="dc-msg with-avatar" id="msg4" style="opacity:0;transition:opacity 0.4s ease, transform 0.4s ease;transform:translateY(8px)">
+              <div class="dc-avatar" style="background:#5865f2;color:white;">S</div>
+              <div class="dc-msg-content">
+                <div class="dc-msg-header">
+                  <span class="dc-username" style="color:#c9cdfb;">Spinach_45</span>
+                  <span class="dc-timestamp">今天 20:15</span>
+                </div>
+                <div class="dc-text"><span class="dc-slash">/search</span> <code>星野源 恋</code></div>
+              </div>
+            </div>
+
+            <div class="dc-msg with-avatar" id="msg5" style="opacity:0;transition:opacity 0.4s ease, transform 0.4s ease;transform:translateY(8px)">
+              <div class="dc-avatar" style="background:#1DB954;color:white;">♪</div>
+              <div class="dc-msg-content">
+                <div class="dc-msg-header">
+                  <span class="dc-username" style="color:#57f287;">MusicBot</span>
+                  <span class="dc-badge music">BOT</span>
+                  <span class="dc-timestamp">今天 20:15</span>
+                </div>
+                <div class="dc-embed" style="border-left-color:#3498db;">
+                  <div class="dc-embed-title">🔍 搜尋結果：「星野源 恋」</div>
+                  <div class="dc-embed-desc">請從下方選單選擇要播放的歌曲（30秒內有效）</div>
+                  <div class="dc-embed-field-value">1. 星野源 - 恋 (Official Video)<br/>2. 星野源 - 恋ダンス<br/>3. Gen Hoshino - Koi (Live)</div>
+                </div>
+                <div class="dc-fake-select"><span>請選擇要播放的歌曲...</span><span>∨</span></div>
+              </div>
+            </div>
+
+            <div class="dc-msg with-avatar" id="msg6" style="opacity:0;transition:opacity 0.4s ease, transform 0.4s ease;transform:translateY(8px)">
+              <div class="dc-avatar" style="background:#e67e22;color:white;">友</div>
+              <div class="dc-msg-content">
+                <div class="dc-msg-header">
+                  <span class="dc-username" style="color:#f0b27a;">友達</span>
+                  <span class="dc-timestamp">今天 20:18</span>
+                </div>
+                <div class="dc-text"><span class="dc-slash">/skip</span></div>
+              </div>
+            </div>
+
+            <div class="dc-msg with-avatar" id="msg7" style="opacity:0;transition:opacity 0.4s ease, transform 0.4s ease;transform:translateY(8px)">
+              <div class="dc-avatar" style="background:#1DB954;color:white;">♪</div>
+              <div class="dc-msg-content">
+                <div class="dc-msg-header">
+                  <span class="dc-username" style="color:#57f287;">MusicBot</span>
+                  <span class="dc-badge music">BOT</span>
+                  <span class="dc-timestamp">今天 20:18</span>
+                </div>
+                <div class="dc-embed" style="border-left-color:#3498db;">
+                  <div class="dc-embed-title">⏭️ 已跳過</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="dc-msg with-avatar" id="msg8" style="opacity:0;transition:opacity 0.4s ease, transform 0.4s ease;transform:translateY(8px)">
+              <div class="dc-avatar" style="background:#5865f2;color:white;">S</div>
+              <div class="dc-msg-content">
+                <div class="dc-msg-header">
+                  <span class="dc-username" style="color:#c9cdfb;">Spinach_45</span>
+                  <span class="dc-timestamp">今天 20:20</span>
+                </div>
+                <div class="dc-text"><span class="dc-slash">/lyrics</span> <code>APT. ROSÉ</code></div>
+              </div>
+            </div>
+
+            <div class="dc-msg with-avatar" id="msg-typing" style="opacity:0;transition:opacity 0.4s ease;">
+              <div class="dc-avatar" style="background:#1DB954;color:white;font-size:1.1rem;">♪</div>
+              <div class="dc-msg-content" style="padding-top:12px;">
+                <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+              </div>
+            </div>
+
+            <div class="dc-msg with-avatar" id="msg9" style="opacity:0;transition:opacity 0.4s ease, transform 0.4s ease;transform:translateY(8px)">
+              <div class="dc-avatar" style="background:#1DB954;color:white;">♪</div>
+              <div class="dc-msg-content">
+                <div class="dc-msg-header">
+                  <span class="dc-username" style="color:#57f287;">MusicBot</span>
+                  <span class="dc-badge music">BOT</span>
+                  <span class="dc-timestamp">今天 20:20</span>
+                </div>
+                <div class="dc-embed">
+                  <div class="dc-embed-title">🎵 APT. - ROSÉ &amp; Bruno Mars</div>
+                  <div class="dc-embed-desc" style="white-space:pre-line;font-size:0.8rem;">Boy, you're making it hard to leave
+Baby, call me back, I need you here with me...
+
+*(歌詞太長，只顯示部分)*</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <div class="dc-input-area">
+            <div class="dc-input">
+              <span>/ 輸入指令…</span>
+              <div class="dc-input-icons">😊 🎁 🖼️</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 功能介紹 -->
+    <div class="demo-panel" id="tab-features">
+      <div class="features-grid reveal">
+        <div class="feature-item"><div class="feature-icon">▶️</div><div class="feature-name">YouTube 播放</div><div class="feature-desc">支援 YouTube 連結直接播放，或輸入關鍵字搜尋並選擇。</div></div>
+        <div class="feature-item"><div class="feature-icon">💚</div><div class="feature-name">Spotify 整合</div><div class="feature-desc">貼上 Spotify 單曲或歌單連結，自動轉換並一次加入佇列。</div></div>
+        <div class="feature-item"><div class="feature-icon">🔍</div><div class="feature-name">搜尋選擇</div><div class="feature-desc">列出 5 個搜尋結果，透過下拉選單選擇要播放的版本。</div></div>
+        <div class="feature-item"><div class="feature-icon">📋</div><div class="feature-name">播放佇列</div><div class="feature-desc">完整佇列管理，支援查看、移除特定曲目、隨機打亂。</div></div>
+        <div class="feature-item"><div class="feature-icon">🔁</div><div class="feature-name">循環模式</div><div class="feature-desc">三種模式：關閉 / 單曲循環 / 全部循環，隨時切換。</div></div>
+        <div class="feature-item"><div class="feature-icon">🔄</div><div class="feature-name">自動播放</div><div class="feature-desc">佇列播完後，根據當前歌曲推薦並自動繼續播放。</div></div>
+        <div class="feature-item"><div class="feature-icon">📻</div><div class="feature-name">Lofi 電台</div><div class="feature-desc">內建多個 Lofi 電台，一鍵播放 24/7 背景音樂。</div></div>
+        <div class="feature-item"><div class="feature-icon">📝</div><div class="feature-name">歌詞查詢</div><div class="feature-desc">透過 Genius API 搜尋並顯示歌詞，支援大部分主流歌曲。</div></div>
+      </div>
+    </div>
+
+    <!-- 指令列表 -->
+    <div class="demo-panel" id="tab-commands">
+      <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:2px;overflow:hidden;" class="reveal">
+        <table class="commands-table">
+          <tr style="background:#0f1614;"><td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:0.1em;">指令</td><td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:0.1em;">說明</td></tr>
+          <tr><td>/play &lt;連結&gt;</td><td>播放 YouTube / Spotify 單曲或歌單</td></tr>
+          <tr><td>/playnext &lt;連結&gt;</td><td>插入至下一首播放</td></tr>
+          <tr><td>/search &lt;關鍵字&gt;</td><td>搜尋歌曲並從結果中選擇</td></tr>
+          <tr><td>/lofi &lt;電台&gt;</td><td>播放 Lofi 電台音樂</td></tr>
+          <tr><td>/pause</td><td>暫停播放</td></tr>
+          <tr><td>/resume</td><td>繼續播放</td></tr>
+          <tr><td>/skip</td><td>跳過目前歌曲</td></tr>
+          <tr><td>/stop</td><td>停止並離開語音頻道</td></tr>
+          <tr><td>/nowplaying</td><td>查看目前播放的歌曲</td></tr>
+          <tr><td>/queue</td><td>查看播放佇列</td></tr>
+          <tr><td>/remove &lt;編號&gt;</td><td>移除佇列中特定歌曲</td></tr>
+          <tr><td>/shuffle</td><td>隨機打亂佇列</td></tr>
+          <tr><td>/loop &lt;模式&gt;</td><td>設定循環模式（關閉 / 單曲 / 全部）</td></tr>
+          <tr><td>/autoplay</td><td>開啟 / 關閉自動播放</td></tr>
+          <tr><td>/lyrics &lt;歌名&gt;</td><td>查詢歌詞</td></tr>
+          <tr><td>/help</td><td>顯示所有指令說明</td></tr>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="divider" />
+
+  <!-- ABOUT -->
+  <section id="about">
+    <p class="section-label reveal">關於</p>
+    <h2 class="section-title reveal">Hi, 我是 Spinach</h2>
+    <div class="about-grid">
+      <div class="about-text reveal">
+        <p>這是我的 <strong>3D 課程</strong> 作品集頁面，記錄我在課堂上學到的東西——從最基礎的 Babylon.js Viewer，到更複雜的場景互動。</p>
+        <p>課外的時間，我喜歡寫一些小程式，像是這個 <strong>Discord Music Bot</strong>，支援 YouTube、Spotify 歌單、搜尋選曲、歌詞查詢等功能，讓伺服器的音樂體驗更完整。</p>
+        <p>這個頁面會持續更新，隨著我做出更多東西，就會出現在這裡。</p>
+      </div>
+      <div class="reveal">
+        <p class="section-label" style="margin-bottom:1.2rem;">技術棧</p>
+        <div class="skills-list">
+          <span class="skill-item">Babylon.js</span>
+          <span class="skill-item">JavaScript</span>
+          <span class="skill-item">Python</span>
+          <span class="skill-item">discord.py</span>
+          <span class="skill-item">HTML / CSS</span>
+          <span class="skill-item">yt-dlp</span>
+          <span class="skill-item">Spotify API</span>
+          <span class="skill-item">Git</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span class="footer-copy">© 2025 spinach-45 · 3D-class</span>
+    <div class="footer-links">
+      <a href="https://github.com/spinach-45" target="_blank">GitHub</a>
+      <a href="#demos">作品</a>
+      <a href="#about">關於</a>
+    </div>
+  </footer>
+
+  <script>
+    // Nav scroll
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40));
+
+    // Reveal on scroll
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => entry.target.classList.add('visible'), i * 80);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    reveals.forEach(el => observer.observe(el));
+
+    // Tab switcher
+    function switchTab(tab) {
+      document.querySelectorAll('.demo-tab').forEach((btn, i) => {
+        btn.classList.toggle('active', ['preview','features','commands'][i] === tab);
+      });
+      document.querySelectorAll('.demo-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    // Discord chat animation
+    const msgIds  = ['msg1','msg2','msg3','msg4','msg5','msg6','msg7','msg8','msg-typing','msg9'];
+    const delays  = [300, 1200, 2400, 3600, 4500, 5700, 6400, 7300, 8100, 9300];
+    let chatDone  = false;
+
+    function showMsg(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+      const chat = document.getElementById('chatMessages');
+      if (chat) chat.scrollTop = chat.scrollHeight;
+    }
+
+    function animateChat() {
+      msgIds.forEach((id, i) => {
+        setTimeout(() => {
+          showMsg(id);
+          // hide typing indicator once actual reply appears
+          if (id === 'msg9') {
+            setTimeout(() => {
+              const t = document.getElementById('msg-typing');
+              if (t) t.style.opacity = '0';
+            }, 200);
+          }
+        }, delays[i]);
+      });
+    }
+
+    const botSection = document.getElementById('bot');
+    const chatObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !chatDone) {
+        chatDone = true;
+        animateChat();
+      }
+    }, { threshold: 0.15 });
+    chatObserver.observe(botSection);
+  </script>
+</body>
+</html>
